@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o health-checker .
 
-FROM alpine:3.20
+FROM alpine:3.24
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=builder /app/health-checker .
