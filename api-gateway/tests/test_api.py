@@ -47,6 +47,57 @@ def test_create_service_validation(client):
     assert resp.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "bad_url",
+    [
+        "foobar",              # no scheme
+        "http://",             # no host
+        "https://",            # no host
+        "ftp://example.com",   # unsupported scheme
+        "://example.com",      # empty scheme
+        "example.com",         # scheme missing
+        "http:///path",        # empty host with path
+    ],
+)
+def test_create_service_rejects_invalid_url(client, bad_url):
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": bad_url},
+    )
+    assert resp.status_code == 422, f"expected 422 for {bad_url!r}, got {resp.status_code}"
+
+
+@pytest.mark.parametrize(
+    "good_url",
+    [
+        "http://example.com",
+        "https://example.com/health",
+        "http://localhost:8080/status",
+        "https://sub.example.co.jp:8443/api/v1/health",
+    ],
+)
+def test_create_service_accepts_valid_url(client, good_url):
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": good_url},
+    )
+    assert resp.status_code == 201, f"expected 201 for {good_url!r}, got {resp.status_code}"
+    assert resp.json()["url"] == good_url
+
+
+def test_create_service_interval_out_of_range(client):
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": "http://a.com", "interval_seconds": 4},
+    )
+    assert resp.status_code == 422
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": "http://a.com", "interval_seconds": 3601},
+    )
+    assert resp.status_code == 422
+
+
 def test_list_services(client):
     client.post("/services", json={"name": "svc1", "url": "http://a.com"})
     client.post("/services", json={"name": "svc2", "url": "http://b.com"})
