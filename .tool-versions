@@ -1,0 +1,5 @@
+# asdf / mise 向けのツールチェインバージョン固定。
+# alert-service (@types/node ^22), api-gateway (FastAPI), health-checker (go.mod) に合わせる。
+python 3.12
+golang 1.22
+nodejs 22
