@@ -78,11 +78,22 @@ describe('POST /alerts', () => {
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('triggered');
     expect(res.body.message).toBe('Service is down');
+    expect(res.body.count).toBe(1);
   });
 
   it('rejects missing fields', async () => {
     const res = await request(app).post('/alerts').send({});
     expect(res.status).toBe(400);
+  });
+
+  it('dedups repeat fires with the same serviceId and message', async () => {
+    await request(app).post('/alerts').send({ serviceId: 'svc-1', message: 'down' });
+    const res = await request(app).post('/alerts').send({ serviceId: 'svc-1', message: 'down' });
+    expect(res.status).toBe(201);
+    expect(res.body.count).toBe(2);
+
+    const list = await request(app).get('/alerts');
+    expect(list.body).toHaveLength(1);
   });
 });
 
