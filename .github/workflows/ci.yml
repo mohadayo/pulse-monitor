@@ -67,11 +67,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: alert-service/package-lock.json
+          # alert-service/.node-version が "22" のためこれと揃える。
+          # Node 20 は GitHub Actions で deprecation 警告が出るので避ける。
+          node-version: "22"
+          # `alert-service/package-lock.json` が存在しないため npm cache は
+          # 有効化しない（cache-dependency-path の解決が失敗するため）。
       - name: Install dependencies
-        run: npm ci
+        # Makefile の `npm install --silent` と揃える。`npm ci` は
+        # package-lock.json 必須で失敗するため使わない。
+        run: npm install --no-audit --no-fund
       - name: Lint (eslint)
         run: npm run lint
       - name: Test (jest)
