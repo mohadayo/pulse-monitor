@@ -93,3 +93,45 @@ func TestCheckEndpointInvalidBody(t *testing.T) {
 		t.Errorf("expected 400, got %d", w.Code)
 	}
 }
+
+func TestCheckEndpointInvalidURL(t *testing.T) {
+	cases := []struct {
+		name string
+		url  string
+	}{
+		{"missing scheme", "example.com/health"},
+		{"non http scheme file", "file:///etc/passwd"},
+		{"non http scheme ftp", "ftp://example.com/pub"},
+		{"non http scheme gopher", "gopher://example.com"},
+		{"missing host", "http://"},
+		{"scheme only", "https://"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := newTestServer()
+			body, _ := json.Marshal(CheckRequest{URL: tc.url})
+			req := httptest.NewRequest(http.MethodPost, "/check", bytes.NewReader(body))
+			w := httptest.NewRecorder()
+
+			s.Handler().ServeHTTP(w, req)
+
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("url=%q: expected 400, got %d (body=%q)", tc.url, w.Code, w.Body.String())
+			}
+
+			ct := w.Header().Get("Content-Type")
+			if ct == "" {
+				t.Errorf("url=%q: expected Content-Type header to be set", tc.url)
+			}
+
+			var resp map[string]string
+			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("url=%q: expected JSON error body, got %q: %v", tc.url, w.Body.String(), err)
+			}
+			if _, ok := resp["error"]; !ok {
+				t.Errorf("url=%q: expected 'error' key in response body, got %v", tc.url, resp)
+			}
+		})
+	}
+}
