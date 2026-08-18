@@ -1,0 +1,61 @@
+# EditorConfig helps maintain consistent coding styles across editors.
+# https://editorconfig.org
+#
+# Pulse Monitor はマルチ言語 (Python / Go / TypeScript) 構成のため、
+# 各サービス間で不必要なフォーマット差分が生まれないようにルールを統一する。
+
+root = true
+
+# 全ファイル共通の既定値
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Python (api-gateway) は PEP 8 に従い 4 スペース
+[*.py]
+indent_style = space
+indent_size = 4
+
+# Go (health-checker) はタブが公式スタイル
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[{go.mod,go.sum}]
+indent_style = tab
+indent_size = 4
+
+# TypeScript / JavaScript / JSON / YAML (alert-service ほか設定ファイル)
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_style = space
+indent_size = 2
+
+[*.{json,jsonc}]
+indent_style = space
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown は行末スペース 2 個で改行を表現するため保持
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefile はレシピの先頭にタブが必須
+[Makefile]
+indent_style = tab
+
+# シェルスクリプト
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# Dockerfile
+[Dockerfile*]
+indent_style = space
+indent_size = 2
