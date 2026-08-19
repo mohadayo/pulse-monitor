@@ -1,0 +1,29 @@
+# CODEOWNERS
+#
+# GitHub は PR が作成された際、変更ファイルにマッチするパターンの
+# オーナーを自動でレビュアーとして割り当てます。
+# 参考: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# デフォルトオーナー (どのパターンにもマッチしないファイル)
+*                       @mohadayo
+
+# マイクロサービス
+/api-gateway/           @mohadayo
+/health-checker/        @mohadayo
+/alert-service/         @mohadayo
+
+# インフラ / オーケストレーション
+/docker-compose.yml     @mohadayo
+/Makefile               @mohadayo
+/.env.example           @mohadayo
+
+# CI / CD / リポジトリメタ
+/.github/               @mohadayo
+/.editorconfig          @mohadayo
+/.tool-versions         @mohadayo
+
+# ドキュメント
+/README.md              @mohadayo
+/CHANGELOG.md           @mohadayo
+/CODE_OF_CONDUCT.md     @mohadayo
+/SECURITY.md            @mohadayo
