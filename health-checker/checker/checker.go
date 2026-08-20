@@ -8,13 +8,21 @@ import (
 	"time"
 )
 
+// Result is the JSON payload returned for a single health check.
+//
+// LatencyMS is measured in milliseconds so that consumers (and the
+// documented API contract) match the on-the-wire field name
+// `latency_ms`. Previously this field was a time.Duration, which the
+// standard encoder emits as its underlying int64 nanosecond count and
+// therefore returned values three orders of magnitude larger than the
+// field name promised.
 type Result struct {
-	URL       string        `json:"url"`
-	Status    string        `json:"status"`
-	Code      int           `json:"status_code"`
-	Latency   time.Duration `json:"latency_ms"`
-	Error     string        `json:"error,omitempty"`
-	CheckedAt time.Time     `json:"checked_at"`
+	URL       string    `json:"url"`
+	Status    string    `json:"status"`
+	Code      int       `json:"status_code"`
+	LatencyMS int64     `json:"latency_ms"`
+	Error     string    `json:"error,omitempty"`
+	CheckedAt time.Time `json:"checked_at"`
 }
 
 type Checker struct {
@@ -44,7 +52,7 @@ func (c *Checker) Check(ctx context.Context, url string) Result {
 			URL:       url,
 			Status:    "unhealthy",
 			Code:      0,
-			Latency:   time.Since(start),
+			LatencyMS: time.Since(start).Milliseconds(),
 			Error:     fmt.Sprintf("request creation failed: %v", err),
 			CheckedAt: time.Now().UTC(),
 		}
@@ -59,7 +67,7 @@ func (c *Checker) Check(ctx context.Context, url string) Result {
 			URL:       url,
 			Status:    "unhealthy",
 			Code:      0,
-			Latency:   latency,
+			LatencyMS: latency.Milliseconds(),
 			Error:     fmt.Sprintf("request failed: %v", err),
 			CheckedAt: time.Now().UTC(),
 		}
@@ -76,7 +84,7 @@ func (c *Checker) Check(ctx context.Context, url string) Result {
 		URL:       url,
 		Status:    status,
 		Code:      resp.StatusCode,
-		Latency:   latency,
+		LatencyMS: latency.Milliseconds(),
 		CheckedAt: time.Now().UTC(),
 	}
 }

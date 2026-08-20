@@ -141,10 +141,12 @@ Response:
   "url": "https://example.com/health",
   "status": "healthy",
   "status_code": 200,
-  "latency_ms": 145000000,
+  "latency_ms": 145,
   "checked_at": "2025-01-01T00:00:00Z"
 }
 ```
+
+`latency_ms` is the total round-trip time to the target in **milliseconds**.
 
 ### Alert Service (`:8002`)
 
