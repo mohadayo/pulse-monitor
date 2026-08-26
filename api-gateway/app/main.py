@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.models import (
@@ -24,6 +25,38 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
 )
+
+
+# 全応答に付与するセキュリティレスポンスヘッダ。
+# JSON API サーバとして外部依存 (secure-headers 等) を追加せずに、
+# starlette 標準の BaseHTTPMiddleware で以下を付ける:
+#
+# - `X-Content-Type-Options: nosniff` … JSON エンドポイントを別 MIME として
+#   解釈させる MIME sniffing 攻撃を抑止。
+# - `X-Frame-Options: DENY` … API を `<iframe>` に埋め込ませない。
+#   JSON API はフレーム表示を意図しないため常時拒否 (clickjacking 対策)。
+# - `Referrer-Policy: no-referrer` … 内部 URL やクエリ文字列がリンク先の
+#   Referrer ヘッダとして外部に漏れないよう抑止。
+#
+# `if key not in response.headers` により既存ヘッダは上書きしない
+# (`setdefault` 相当) — 将来 per-route オーバーライドやテストを壊さない。
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        for key, value in _SECURITY_HEADERS.items():
+            if key not in response.headers:
+                response.headers[key] = value
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @app.get("/health", response_model=HealthResponse)
