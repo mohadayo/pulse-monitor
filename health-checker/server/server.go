@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -106,8 +105,11 @@ func (s *Server) handleCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// r.Context() を利用してリクエストのキャンセル・デッドラインを
+	// アウトバウンドの HTTP チェックへ伝播させる。context.Background() を
+	// 使うとクライアントが切断してもチェックが継続し、リソースを浪費する。
 	s.logger.Info("performing health check", "target_url", req.URL)
-	result := s.checker.Check(context.Background(), req.URL)
+	result := s.checker.Check(r.Context(), req.URL)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

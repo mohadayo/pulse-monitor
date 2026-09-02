@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -133,5 +134,75 @@ func TestCheckEndpointInvalidURL(t *testing.T) {
 				t.Errorf("url=%q: expected 'error' key in response body, got %v", tc.url, resp)
 			}
 		})
+	}
+}
+
+// TestCheckEndpointPropagatesClientCancellation は、クライアントが /check への
+// リクエストをキャンセル (=リクエストコンテキストが Done) した場合に、
+// ハンドラがそのコンテキストをアウトバウンドの HTTP チェックへ伝播させ、
+// 対象サーバが応答を返す前にチェックが中断されることを検証する。
+//
+// これまでは context.Background() が使われていたため、クライアントが
+// 切断してもアウトバウンドチェックはブロックし続けていた。
+func TestCheckEndpointPropagatesClientCancellation(t *testing.T) {
+	// 遅延応答するターゲット。ctx キャンセルで即座に抜ける。
+	reached := make(chan struct{}, 1)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached <- struct{}{}
+		select {
+		case <-r.Context().Done():
+			return
+		case <-time.After(5 * time.Second):
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer target.Close()
+
+	s := newTestServer()
+
+	// 事前にキャンセル済みの ctx をリクエストに紐付け。ハンドラが r.Context()
+	// を利用していれば、アウトバウンド HTTP チェックは即座にエラー扱いになる。
+	ctx, cancel := context.WithCancel(context.Background())
+	body, _ := json.Marshal(CheckRequest{URL: target.URL})
+	req := httptest.NewRequest(http.MethodPost, "/check", bytes.NewReader(body)).WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	// リクエスト送信直後にキャンセル。ハンドラは 200 を返しつつ、result は
+	// unhealthy になっているはず (context.Canceled が Do() から返る)。
+	done := make(chan struct{})
+	go func() {
+		s.Handler().ServeHTTP(w, req)
+		close(done)
+	}()
+
+	// ターゲットに到達したらキャンセル。
+	select {
+	case <-reached:
+	case <-time.After(2 * time.Second):
+		cancel()
+		<-done
+		t.Fatalf("target was never reached")
+	}
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatalf("handler did not return after cancellation; context is not being propagated")
+	}
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 (handler always writes JSON result), got %d", w.Code)
+	}
+
+	var result checker.Result
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to decode result: %v (body=%q)", err, w.Body.String())
+	}
+	if result.Status != "unhealthy" {
+		t.Errorf("expected unhealthy after cancellation, got %s (error=%q)", result.Status, result.Error)
+	}
+	if result.Error == "" {
+		t.Errorf("expected non-empty error on canceled request")
 	}
 }
