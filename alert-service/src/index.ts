@@ -3,7 +3,7 @@ import { loadConfig } from './config';
 import { Logger } from './logger';
 
 const config = loadConfig();
-const logger = new Logger('alert-service', config.logLevel as 'DEBUG' | 'INFO' | 'WARN' | 'ERROR');
+const logger = new Logger('alert-service', config.logLevel);
 
 // SIGTERM 受信後、進行中リクエストの完了を待つ最大時間 (ms)。
 // Kubernetes の既定 grace period (30s) より短めに設定し、SIGKILL が
