@@ -4,7 +4,7 @@ import { AlertStore, CreateAlertRuleInput } from './alerts';
 import { loadConfig } from './config';
 
 const config = loadConfig();
-const logger = new Logger('alert-service', config.logLevel as 'DEBUG' | 'INFO' | 'WARN' | 'ERROR');
+const logger = new Logger('alert-service', config.logLevel);
 const store = new AlertStore(logger, {
   dedupWindowMs: config.alertDedupWindowSeconds * 1000,
 });
