@@ -268,6 +268,7 @@ jobs:
 
 `docs/` 配下に、開発・運用・障害対応のためのドキュメントを整理しています。
 
+- [`docs/ALERTING.md`](docs/ALERTING.md) — アラートルール・通知チャンネル・重複抑制などアラート運用に関するリファレンス
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — システム構成・サービス間の相互作用・レイヤ責務のバードビュー
 - [`docs/FAQ.md`](docs/FAQ.md) — 設定・運用・仕様に関するよくある質問と回答
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — 障害発生時の観測・切り分け・復旧手順
