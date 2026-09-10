@@ -16,10 +16,33 @@ class ServiceCreate(BaseModel):
     url: str = Field(..., min_length=1)
     interval_seconds: int = Field(default=30, ge=5, le=3600)
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        """Reject whitespace-only names and trim surrounding whitespace.
+
+        `Field(min_length=1)` only checks raw string length, so a value like
+        ``"   "`` slips through. A name that renders as visually blank is
+        unusable in dashboards, logs and alert messages, so we require at
+        least one non-whitespace character and normalize the stored value by
+        stripping leading/trailing whitespace.
+        """
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("name must contain at least one non-whitespace character")
+        return stripped
+
     @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
-        """Ensure the URL uses http/https and includes a host name."""
+        """Ensure the URL uses http/https and includes a host name.
+
+        Also rejects URLs that embed credentials (``http://user:pass@host``).
+        Monitored URLs are propagated to the health-checker and alert-service
+        and appear in structured logs, so accepting userinfo would risk
+        leaking secrets through logs. Health check endpoints are expected to
+        be reachable without in-URL credentials.
+        """
         try:
             parsed = urlparse(value)
         except (ValueError, TypeError) as exc:
@@ -28,6 +51,8 @@ class ServiceCreate(BaseModel):
             raise ValueError("url must start with http:// or https://")
         if not parsed.netloc or not parsed.hostname:
             raise ValueError("url must include a host name")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("url must not contain embedded credentials")
         return value
 
 

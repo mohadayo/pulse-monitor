@@ -68,6 +68,46 @@ def test_create_service_rejects_invalid_url(client, bad_url):
 
 
 @pytest.mark.parametrize(
+    "credentialed_url",
+    [
+        "http://user:pass@example.com",       # user + password
+        "https://user:pass@example.com/x",    # user + password + path
+        "https://:token@example.com",         # password only (empty user)
+        "https://user@example.com",           # user only (no password)
+    ],
+)
+def test_create_service_rejects_url_with_credentials(client, credentialed_url):
+    # 監視対象 URL は複数サービスのログに載るため、埋め込み資格情報は拒否する。
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": credentialed_url},
+    )
+    assert resp.status_code == 422, (
+        f"expected 422 for {credentialed_url!r}, got {resp.status_code}"
+    )
+
+
+@pytest.mark.parametrize("blank_name", ["   ", " ", "\t", "\t\n "])
+def test_create_service_rejects_whitespace_only_name(client, blank_name):
+    # `min_length=1` は文字数だけ見るため、空白のみは field_validator 側で拒否する。
+    resp = client.post(
+        "/services",
+        json={"name": blank_name, "url": "http://example.com"},
+    )
+    assert resp.status_code == 422
+
+
+def test_create_service_trims_name_whitespace(client):
+    # 前後空白は正規化して格納する契約。
+    resp = client.post(
+        "/services",
+        json={"name": "  web-app  ", "url": "http://example.com"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["name"] == "web-app"
+
+
+@pytest.mark.parametrize(
     "good_url",
     [
         "http://example.com",

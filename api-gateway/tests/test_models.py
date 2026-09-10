@@ -18,6 +18,7 @@ from app.models import (
     ErrorResponse,
     HealthResponse,
     Service,
+    ServiceCreate,
     ServiceStatus,
 )
 
@@ -93,6 +94,41 @@ class TestService:
         del kwargs["id"]
         with pytest.raises(ValidationError):
             Service(**kwargs)
+
+
+class TestServiceCreateValidation:
+    """`ServiceCreate` の入力バリデーション契約の回帰。
+
+    HTTP 経由の網羅は `test_api.py` にあるが、Pydantic モデル単体でも
+    以下の契約を固定して、API 経由でない呼び出し（テストヘルパや
+    バックグラウンドタスク）でも回帰を検知できるようにする。
+
+    - 空白のみ `name` は拒否する。
+    - `name` の前後空白はトリムして格納する。
+    - `url` に埋め込まれた userinfo は拒否する。
+    """
+
+    @pytest.mark.parametrize("blank", ["   ", " ", "\t", "\t\n "])
+    def test_whitespace_only_name_rejected(self, blank):
+        with pytest.raises(ValidationError):
+            ServiceCreate(name=blank, url="http://example.com")
+
+    def test_name_is_stripped(self):
+        s = ServiceCreate(name="  web-app  ", url="http://example.com")
+        assert s.name == "web-app"
+
+    @pytest.mark.parametrize(
+        "bad_url",
+        [
+            "http://user:pass@example.com",
+            "https://user:pass@example.com/x",
+            "https://:token@example.com",
+            "https://user@example.com",
+        ],
+    )
+    def test_url_with_credentials_rejected(self, bad_url):
+        with pytest.raises(ValidationError):
+            ServiceCreate(name="svc", url=bad_url)
 
 
 class TestAlertConfig:
