@@ -35,7 +35,15 @@ class ServiceCreate(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
-        """Ensure the URL uses http/https and includes a host name.
+        """Normalize whitespace and ensure the URL uses http/https with a host.
+
+        Trims leading/trailing whitespace before validation because
+        ``urlparse("http://example.com ")`` returns ``netloc='example.com '``
+        (with the trailing space) while ``hostname`` normalizes it, so a
+        naive validator would accept the value and persist it with the
+        embedded whitespace. The monitored URL is propagated to health-checker
+        and alert-service and appears in structured logs; a trailing space
+        breaks downstream HTTP clients and reads as a silent typo.
 
         Also rejects URLs that embed credentials (``http://user:pass@host``).
         Monitored URLs are propagated to the health-checker and alert-service
@@ -43,8 +51,11 @@ class ServiceCreate(BaseModel):
         leaking secrets through logs. Health check endpoints are expected to
         be reachable without in-URL credentials.
         """
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("url must contain at least one non-whitespace character")
         try:
-            parsed = urlparse(value)
+            parsed = urlparse(stripped)
         except (ValueError, TypeError) as exc:
             raise ValueError("url must be a valid URL") from exc
         if parsed.scheme not in ("http", "https"):
@@ -53,7 +64,7 @@ class ServiceCreate(BaseModel):
             raise ValueError("url must include a host name")
         if parsed.username is not None or parsed.password is not None:
             raise ValueError("url must not contain embedded credentials")
-        return value
+        return stripped
 
 
 class Service(BaseModel):

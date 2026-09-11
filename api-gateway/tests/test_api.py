@@ -107,6 +107,27 @@ def test_create_service_trims_name_whitespace(client):
     assert resp.json()["name"] == "web-app"
 
 
+def test_create_service_trims_url_whitespace(client):
+    # `urlparse("http://example.com ")` は末尾空白付きの netloc を返すため、
+    # `validate_url` が明示的に strip しないと空白付き URL のまま保存され、
+    # health-checker への伝搬時に HTTP エラーやログ汚染を起こす（GH-87）。
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": "  http://example.com/health  "},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["url"] == "http://example.com/health"
+
+
+@pytest.mark.parametrize("blank_url", ["   ", " ", "\t", "\t\n "])
+def test_create_service_rejects_whitespace_only_url(client, blank_url):
+    resp = client.post(
+        "/services",
+        json={"name": "svc", "url": blank_url},
+    )
+    assert resp.status_code == 422
+
+
 @pytest.mark.parametrize(
     "good_url",
     [
