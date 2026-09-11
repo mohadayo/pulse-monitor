@@ -105,6 +105,7 @@ class TestServiceCreateValidation:
 
     - 空白のみ `name` は拒否する。
     - `name` の前後空白はトリムして格納する。
+    - `url` の前後空白はトリムして格納する（空白のみ URL は拒否）。
     - `url` に埋め込まれた userinfo は拒否する。
     """
 
@@ -116,6 +117,27 @@ class TestServiceCreateValidation:
     def test_name_is_stripped(self):
         s = ServiceCreate(name="  web-app  ", url="http://example.com")
         assert s.name == "web-app"
+
+    @pytest.mark.parametrize(
+        "raw_url,expected",
+        [
+            ("  http://example.com  ", "http://example.com"),
+            ("http://example.com\n", "http://example.com"),
+            ("\thttps://example.com/health\t", "https://example.com/health"),
+            (" https://sub.example.co.jp:8443/api ", "https://sub.example.co.jp:8443/api"),
+        ],
+    )
+    def test_url_is_stripped(self, raw_url, expected):
+        # `urlparse` は netloc に含まれる末尾空白を落とさないため、
+        # `validate_url` が明示的に strip しないと空白付き URL が保存され、
+        # health-checker への伝搬先で不整合を起こす（GH-87）。
+        s = ServiceCreate(name="svc", url=raw_url)
+        assert s.url == expected
+
+    @pytest.mark.parametrize("blank", ["   ", " ", "\t", "\t\n "])
+    def test_whitespace_only_url_rejected(self, blank):
+        with pytest.raises(ValidationError):
+            ServiceCreate(name="svc", url=blank)
 
     @pytest.mark.parametrize(
         "bad_url",
