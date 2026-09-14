@@ -194,75 +194,21 @@ See [`.env.example`](.env.example) for all available configuration options.
 
 ## CI/CD
 
-GitHub Actions workflow runs on every push and PR to `main`:
+GitHub Actions ワークフロー ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) が `main` へのすべての push および pull request で以下のジョブを実行します。ワークフロー本体はリポジトリ上のファイルを唯一の出典 (single source of truth) として参照してください。README への YAML 二重掲載は情報が食い違う原因になるため行いません。
 
-1. **test-python** — Lint with flake8, test with pytest
-2. **test-go** — Vet and test Go code
-3. **test-typescript** — Lint with ESLint, test with Jest
-4. **docker-build** — Verify Docker Compose builds successfully
+| ジョブ | 対象 | 実行内容 |
+|---|---|---|
+| `test-python` | `api-gateway/` | `flake8 app/ tests/ --max-line-length=120` と `pytest -v` |
+| `test-go` | `health-checker/` | `go vet ./...` と `go test -v ./...` |
+| `test-typescript` | `alert-service/` | `npm run lint`（ESLint）と `npm test`（Jest） |
+| `docker-build` | ルート | 上記 3 ジョブ成功後に `docker compose build` で構成全体のビルドを検証 |
 
-> **Note:** The `.github/workflows/ci.yml` file may need to be manually added after initial setup due to GitHub API limitations with the `.github/` directory.
+現行ワークフローに含まれる運用設定：
 
-### CI Workflow Content
-
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test-python:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api-gateway
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - run: flake8 app/ tests/ --max-line-length=120
-      - run: pytest -v
-
-  test-go:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: health-checker
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-      - run: go vet ./...
-      - run: go test ./... -v
-
-  test-typescript:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: alert-service
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: npm run lint
-      - run: npm test
-
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: [test-python, test-go, test-typescript]
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker compose build
-```
+- **最小権限**: `permissions: contents: read`（`GITHUB_TOKEN` に書き込み権限を持たせない）
+- **並行実行制御**: 同一 ref で新しい実行が起動した際に古いジョブを自動キャンセル（`concurrency` + `cancel-in-progress`）
+- **タイムアウト**: 各ジョブに `timeout-minutes` を設定（ハング時のランナー時間浪費を防止）
+- **依存キャッシュ**: `actions/setup-python`・`actions/setup-go`・`actions/setup-node` のビルトインキャッシュを有効化（`requirements.txt` / `go.sum` / `package.json` をキーに使用）
 
 ## Documentation
 
