@@ -48,8 +48,24 @@ jobs:
         with:
           go-version: "1.22"
           cache-dependency-path: health-checker/go.sum
+      # gofmt 差分をエラーにする。未整形ファイルの一覧を出しつつ非 0 で落とす。
+      - name: gofmt check
+        run: |
+          diff=$(gofmt -l .)
+          if [ -n "$diff" ]; then
+            echo "gofmt reported unformatted files:"
+            echo "$diff"
+            exit 1
+          fi
       - run: go vet ./...
-      - run: go test -v ./...
+      # main を含む全パッケージのコンパイル確認。テストが無いパッケージも
+      # ここで壊れていれば失敗する。
+      - run: go build ./...
+      # -race で並行バグを、-cover でカバレッジを計測する。
+      - run: go test -race -cover -coverprofile=coverage.out -v ./...
+      # ジョブログにカバレッジサマリを出す (レビュー時のヒント)。
+      - name: coverage summary
+        run: go tool cover -func=coverage.out
 
   test-typescript:
     runs-on: ubuntu-latest
