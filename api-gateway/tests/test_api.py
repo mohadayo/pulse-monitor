@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -189,6 +191,18 @@ def test_update_service_status(client):
     assert resp.json()["last_checked"] is not None
 
 
+def test_update_service_status_not_found_logs_warning(client, caplog):
+    # GH-93: PUT .../status は GET と同様に、見つからなかった場合は
+    # warning ログを残してから 404 を返す契約。
+    with caplog.at_level(logging.WARNING, logger="api-gateway"):
+        resp = client.put("/services/nonexistent/status?status=healthy")
+    assert resp.status_code == 404
+    assert any(
+        record.levelno == logging.WARNING and "Service not found: nonexistent" in record.message
+        for record in caplog.records
+    )
+
+
 def test_delete_service(client):
     create_resp = client.post("/services", json={"name": "svc", "url": "http://a.com"})
     svc_id = create_resp.json()["id"]
@@ -201,3 +215,15 @@ def test_delete_service(client):
 def test_delete_service_not_found(client):
     resp = client.delete("/services/nonexistent")
     assert resp.status_code == 404
+
+
+def test_delete_service_not_found_logs_warning(client, caplog):
+    # GH-93: DELETE も GET と同様に、見つからなかった場合は warning ログを
+    # 残してから 404 を返す契約。
+    with caplog.at_level(logging.WARNING, logger="api-gateway"):
+        resp = client.delete("/services/nonexistent")
+    assert resp.status_code == 404
+    assert any(
+        record.levelno == logging.WARNING and "Service not found: nonexistent" in record.message
+        for record in caplog.records
+    )
