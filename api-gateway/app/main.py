@@ -99,6 +99,7 @@ async def update_service_status(service_id: str, status: ServiceStatus):
     logger.info("Updating service %s status to %s", service_id, status)
     service = store.update_status(service_id, status)
     if service is None:
+        logger.warning("Service not found: %s", service_id)
         raise HTTPException(status_code=404, detail="Service not found")
     return service
 
@@ -107,6 +108,7 @@ async def update_service_status(service_id: str, status: ServiceStatus):
 async def delete_service(service_id: str):
     logger.info("Deleting service: %s", service_id)
     if not store.delete(service_id):
+        logger.warning("Service not found: %s", service_id)
         raise HTTPException(status_code=404, detail="Service not found")
     return None
 
