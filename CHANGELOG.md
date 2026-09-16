@@ -13,7 +13,11 @@
 
 ### Changed
 
-- （挙動の変更をここに記載）
+- **api-gateway**: `PUT /services/{id}/status` と `DELETE /services/{id}` が、
+  対象サービスが見つからなかった場合に `GET /services/{id}` と同じ
+  `Service not found: <id>` 警告ログを出力するようにした。これまでは
+  `GET` のみがログを残しており、存在しない ID への更新・削除リクエストを
+  ログから追跡できなかった (#93)。
 
 ### Deprecated
 
