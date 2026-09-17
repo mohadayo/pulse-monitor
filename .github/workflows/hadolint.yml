@@ -1,0 +1,65 @@
+# Dockerfile 静的解析
+#
+# 目的:
+#   3 サービス (alert-service, api-gateway, health-checker) の Dockerfile を
+#   hadolint で検査し、ベストプラクティス違反 (未 pin ベースイメージ、非効率な
+#   RUN 分割、root 実行、レイヤ順序ミス等) を PR / push 時点で早期検知する。
+#
+# 設計上のポイント:
+#   - `hadolint/hadolint-action` はプリビルドバイナリを直接実行する軽量ツール。
+#     3 サービス分を matrix で並列実行し、失敗した Dockerfile を特定しやすい形で
+#     結果を出す。1 サービス失敗しても他は継続 (`fail-fast: false`)。
+#   - 共有ポリシーは `.hadolint.yaml` に集約し、CI とローカル (`hadolint <path>`)
+#     で同じ結果を返すようにする。
+#   - `failure-threshold: warning` により info レベルは fail 条件にせず、
+#     info はレビュー時の判断材料として扱う。
+#   - 権限は `contents: read` のみ、`concurrency` で多重実行を抑止。
+#   - `paths` フィルタで Dockerfile / .hadolint.yaml / 本ワークフローの
+#     変更時のみランナーを起動。
+
+name: hadolint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/Dockerfile'
+      - '.hadolint.yaml'
+      - '.github/workflows/hadolint.yml'
+  pull_request:
+    paths:
+      - '**/Dockerfile'
+      - '.hadolint.yaml'
+      - '.github/workflows/hadolint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hadolint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hadolint:
+    name: hadolint (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - alert-service
+          - api-gateway
+          - health-checker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.service }}/Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: warning
