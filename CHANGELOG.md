@@ -33,7 +33,12 @@
 
 ### Security
 
-- （セキュリティ関連の修正をここに記載）
+- **alert-service**: すべての HTTP 応答に基本セキュリティヘッダ
+  (`X-Content-Type-Options: nosniff` / `X-Frame-Options: DENY` /
+  `Referrer-Policy: no-referrer`) を付与する Express ミドルウェアを
+  追加した。api-gateway 側 (#64) と同じポリシーで JSON API の
+  MIME sniffing / clickjacking / Referrer 漏洩リスクを抑止し、
+  3 サービスでセキュリティヘッダ運用を揃える (#97)。
 
 ## [0.1.0] - 2026-05-08
 

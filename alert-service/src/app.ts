@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { Logger } from './logger';
 import { AlertStore, CreateAlertRuleInput } from './alerts';
 import { loadConfig } from './config';
+import { securityHeaders } from './security-headers';
 
 const config = loadConfig();
 const logger = new Logger('alert-service', config.logLevel);
@@ -10,6 +11,9 @@ const store = new AlertStore(logger, {
 });
 
 const app = express();
+// セキュリティヘッダは JSON パーサ / ルーティングより前に登録し、
+// パース失敗 (400) や未定義パス (404) の応答にもヘッダが確実に載るようにする。
+app.use(securityHeaders());
 app.use(express.json());
 
 app.get('/health', (_req: Request, res: Response) => {
