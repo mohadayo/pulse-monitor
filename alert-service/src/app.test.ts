@@ -106,6 +106,38 @@ describe('GET /alerts', () => {
   });
 });
 
+describe('GET /alerts/:id', () => {
+  it('returns an alert by id', async () => {
+    const created = await request(app)
+      .post('/alerts')
+      .send({ serviceId: 'svc-1', serviceName: 'Web', message: 'down' });
+    const res = await request(app).get(`/alerts/${created.body.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(created.body.id);
+    expect(res.body.serviceId).toBe('svc-1');
+    expect(res.body.status).toBe('triggered');
+  });
+
+  it('returns 404 for unknown alert id', async () => {
+    const res = await request(app).get('/alerts/alert-does-not-exist');
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Alert not found');
+  });
+
+  it('reflects the latest status after resolve without listing everything', async () => {
+    // Regression / contract test: polling a single alert must see state
+    // changes without having to fetch the full list.
+    const created = await request(app)
+      .post('/alerts')
+      .send({ serviceId: 'svc-1', message: 'down' });
+    await request(app).put(`/alerts/${created.body.id}/resolve`);
+
+    const res = await request(app).get(`/alerts/${created.body.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('resolved');
+  });
+});
+
 describe('PUT /alerts/:id/resolve', () => {
   it('resolves an alert', async () => {
     const created = await request(app).post('/alerts').send({ serviceId: 'svc-1', message: 'down' });
