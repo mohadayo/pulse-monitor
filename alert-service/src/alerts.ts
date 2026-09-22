@@ -134,6 +134,19 @@ export class AlertStore {
     return Array.from(this.alerts.values());
   }
 
+  /**
+   * ID を指定して単一のアラートを取得する。存在しない場合は undefined。
+   *
+   * ルール側の `getRule(id)` と対称になるように追加した薄いラッパー。
+   * `GET /alerts/:id` ハンドラや、resolve 後の状態確認を polling する
+   * クライアント経路から呼ばれる想定。`Alert` は破壊的変更されない
+   * インターフェースとして扱われるため、内部 Map の参照をそのまま返して
+   * 呼び出し側でのコピーは避ける（一覧取得の `getAlerts()` と同じ姿勢）。
+   */
+  getAlert(id: string): Alert | undefined {
+    return this.alerts.get(id);
+  }
+
   resolveAlert(id: string): Alert | undefined {
     const alert = this.alerts.get(id);
     if (alert) {
