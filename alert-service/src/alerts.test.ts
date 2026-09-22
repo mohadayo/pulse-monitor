@@ -96,6 +96,43 @@ describe('AlertStore.triggerAlert dedup', () => {
   });
 });
 
+describe('AlertStore.getAlert', () => {
+  it('returns the alert whose id was created previously', () => {
+    const store = makeStore();
+    store.clear();
+
+    const alert = store.triggerAlert('svc-1', 'Web', 'down');
+    const fetched = store.getAlert(alert.id);
+
+    expect(fetched).toBeDefined();
+    expect(fetched?.id).toBe(alert.id);
+    expect(fetched?.serviceId).toBe('svc-1');
+    expect(fetched?.status).toBe('triggered');
+    expect(fetched?.count).toBe(1);
+  });
+
+  it('reflects resolve state changes without an extra fetch of the full list', () => {
+    const store = makeStore();
+    store.clear();
+
+    const alert = store.triggerAlert('svc-1', 'Web', 'down');
+    store.resolveAlert(alert.id);
+
+    // 単一取得経路も内部 Map の同じインスタンスを返すため、resolveAlert
+    // の書き換えが直後の getAlert で見えることを保証する（クライアントの
+    // polling ユースケースの契約）。
+    const fetched = store.getAlert(alert.id);
+    expect(fetched?.status).toBe('resolved');
+  });
+
+  it('returns undefined for an unknown id', () => {
+    const store = makeStore();
+    store.clear();
+
+    expect(store.getAlert('alert-does-not-exist')).toBeUndefined();
+  });
+});
+
 describe('AlertStore.resolveAlert', () => {
   it('marks an alert as resolved and refreshes updatedAt', async () => {
     const store = makeStore();
