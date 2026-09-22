@@ -73,6 +73,15 @@ app.get('/alerts', (_req: Request, res: Response) => {
   res.json(store.getAlerts());
 });
 
+app.get('/alerts/:id', (req: Request<{id: string}>, res: Response) => {
+  const alert = store.getAlert(req.params.id);
+  if (!alert) {
+    res.status(404).json({ error: 'Alert not found' });
+    return;
+  }
+  res.json(alert);
+});
+
 app.put('/alerts/:id/resolve', (req: Request<{id: string}>, res: Response) => {
   const alert = store.resolveAlert(req.params.id);
   if (!alert) {
