@@ -7,6 +7,7 @@
 | やりたいこと | 参照先 |
 | --- | --- |
 | システム全体像・サービス責務・データフローを把握したい | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Pulse Monitor が扱うメトリクスの意味・SLI / SLO の目安を知りたい | [`METRICS.md`](METRICS.md) |
 | アラートの設計方針・ルール管理・通知チャンネル・重複抑制を知りたい | [`ALERTING.md`](ALERTING.md) |
 | 設定・運用・仕様に関する「よくある質問」を確認したい | [`FAQ.md`](FAQ.md) |
 | 症状から障害切り分け手順を辿りたい・エラー時の対処を調べたい | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) |
@@ -17,8 +18,9 @@
 
 1. ルート [`../README.md`](../README.md) — プロジェクト概要・クイックスタート・API 概要
 2. [`ARCHITECTURE.md`](ARCHITECTURE.md) — API Gateway (Python) / Health Checker (Go) / Alert Service (TypeScript) の 3 サービス構成を把握
-3. [`ALERTING.md`](ALERTING.md) — 実際にアラートを設定・受信するときの考え方
-4. [`FAQ.md`](FAQ.md) / [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 詰まったとき・想定挙動を確認したいときのリファレンス
+3. [`METRICS.md`](METRICS.md) — 何を測っているか / どこまでが健全域かの定義
+4. [`ALERTING.md`](ALERTING.md) — 実際にアラートを設定・受信するときの考え方
+5. [`FAQ.md`](FAQ.md) / [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — 詰まったとき・想定挙動を確認したいときのリファレンス
 
 ## リポジトリ全体のガイド
 
