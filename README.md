@@ -1,5 +1,11 @@
 # Pulse Monitor
 
+[![CI](https://github.com/mohadayo/pulse-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
+[![Python](https://img.shields.io/badge/python-3.12+-3776ab.svg?logo=python&logoColor=white)](api-gateway/)
+[![Go](https://img.shields.io/badge/go-1.22+-00add8.svg?logo=go&logoColor=white)](health-checker/)
+[![TypeScript](https://img.shields.io/badge/typescript-node%2022-3178c6.svg?logo=typescript&logoColor=white)](alert-service/)
+
 Real-time multi-service health monitoring platform. Register services, perform automated health checks, and receive alerts when services go down.
 
 ## Architecture
