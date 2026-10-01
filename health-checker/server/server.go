@@ -39,6 +39,9 @@ func New(c *checker.Checker, logger *slog.Logger) *Server {
 }
 
 func (s *Server) routes() {
+	// JSON パース失敗 (400) や未定義パス (404) の応答にもヘッダが確実に載るよう、
+	// ルーティング登録より前にセキュリティヘッダのミドルウェアを挿入する。
+	s.router.Use(securityHeadersMiddleware)
 	s.router.Get("/health", s.handleHealth)
 	s.router.Post("/check", s.handleCheck)
 }
@@ -106,7 +109,7 @@ func (s *Server) handleCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// r.Context() を利用してリクエストのキャンセル・デッドラインを
-	// アウトバウンドの HTTP チェックへ伝播させる。context.Background() を
+	// アウトバウンドの HTTP チェックへ伝搬させる。context.Background() を
 	// 使うとクライアントが切断してもチェックが継続し、リソースを浪費する。
 	s.logger.Info("performing health check", "target_url", req.URL)
 	result := s.checker.Check(r.Context(), req.URL)
