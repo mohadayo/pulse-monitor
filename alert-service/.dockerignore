@@ -1,0 +1,48 @@
+# .dockerignore for alert-service (Node.js / TypeScript)
+# docker build に不要なファイルを除外してコンテキスト転送を削減する。
+# node_modules を含めると数十〜数百 MB になり得るため特に重要。
+
+# VCS / GitHub
+.git
+.gitignore
+.gitattributes
+.github
+
+# 環境ファイル (イメージへ焼き付けないこと)
+.env
+.env.*
+!.env.example
+
+# Node 依存関係 / ビルド成果物
+# (コンテナ内で npm install / npm run build を実行するため、
+#  ホスト側で生成されたものはコンテキストから除外する)
+node_modules
+dist
+*.tsbuildinfo
+
+# ログ / パッケージマネージャの一時ファイル
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# テスト / カバレッジ成果物
+coverage
+.nyc_output
+
+# IDE / エディタ
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS メタデータ
+.DS_Store
+Thumbs.db
+
+# ドキュメント / Docker 自身 (COPY 対象外)
+README.md
+Dockerfile
+.dockerignore
