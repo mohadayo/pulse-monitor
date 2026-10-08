@@ -1,0 +1,40 @@
+# .dockerignore for health-checker (Go)
+# docker build に不要なファイルを除外してコンテキスト転送を削減する。
+# マルチステージビルドのため、ソース (go.mod/go.sum/*.go) 以外は原則不要。
+
+# VCS / GitHub
+.git
+.gitignore
+.gitattributes
+.github
+
+# 環境ファイル (イメージへ焼き付けないこと)
+.env
+.env.*
+!.env.example
+
+# ホスト側でビルドされたバイナリ (再現性のためコンテキストに含めない)
+health-checker
+*.exe
+
+# Go テスト / プロファイル成果物
+*.test
+*.out
+coverage.out
+coverage.html
+
+# IDE / エディタ
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS メタデータ
+.DS_Store
+Thumbs.db
+
+# ドキュメント / Docker 自身 (COPY 対象外)
+README.md
+Dockerfile
+.dockerignore
