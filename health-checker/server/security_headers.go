@@ -9,12 +9,12 @@ import "net/http"
 // `alert-service` の `SECURITY_HEADERS` (`src/security-headers.ts`) と
 // 同一のポリシーを保ち、3 サービスでのヘッダ運用を揃える意図で設定している。
 //
-// - `X-Content-Type-Options: nosniff` … JSON エンドポイントを別 MIME として
-//   解釈させる MIME sniffing 攻撃を抑止する。
-// - `X-Frame-Options: DENY` … API を `<iframe>` に埋め込ませない。
-//   JSON API はフレーム表示を意図しないため常時拒否する (clickjacking 対策)。
-// - `Referrer-Policy: no-referrer` … 内部 URL やクエリ文字列が、リンク先の
-//   Referrer ヘッダとして外部に漏れないよう抑止する。
+//   - `X-Content-Type-Options: nosniff` … JSON エンドポイントを別 MIME として
+//     解釈させる MIME sniffing 攻撃を抑止する。
+//   - `X-Frame-Options: DENY` … API を `<iframe>` に埋め込ませない。
+//     JSON API はフレーム表示を意図しないため常時拒否する (clickjacking 対策)。
+//   - `Referrer-Policy: no-referrer` … 内部 URL やクエリ文字列が、リンク先の
+//     Referrer ヘッダとして外部に漏れないよう抑止する。
 var SecurityHeaders = map[string]string{
 	"X-Content-Type-Options": "nosniff",
 	"X-Frame-Options":        "DENY",
