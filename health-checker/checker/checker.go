@@ -3,6 +3,7 @@ package checker
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -29,6 +30,20 @@ type Checker struct {
 	client  *http.Client
 	timeout time.Duration
 	logger  *slog.Logger
+}
+
+// drainAndClose は HTTP レスポンスボディを全読み込みしてから Close する。
+//
+// net/http.Transport は Body が読み切られていない接続を keep-alive プールに
+// 戻さず破棄する。/health のような小さなレスポンスでも Close() のみでは
+// 接続が破棄され、health-checker のポーリング（複数ターゲット × interval）
+// で毎回 TCP+TLS ハンドシェイクが張り直されるコストが積み上がる。
+//
+// io.Discard への io.Copy は内部で小さな既読バッファを再利用するため
+// 割り当てオーバーヘッドはない。Close のエラーは呼び元が対処できないため無視する。
+func drainAndClose(body io.ReadCloser) {
+	_, _ = io.Copy(io.Discard, body)
+	_ = body.Close()
 }
 
 func New(timeout time.Duration, logger *slog.Logger) *Checker {
@@ -72,7 +87,7 @@ func (c *Checker) Check(ctx context.Context, url string) Result {
 			CheckedAt: time.Now().UTC(),
 		}
 	}
-	defer resp.Body.Close()
+	defer drainAndClose(resp.Body)
 
 	status := "healthy"
 	if resp.StatusCode >= 400 {
