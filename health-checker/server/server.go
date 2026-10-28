@@ -63,9 +63,16 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // validateCheckURL rejects anything the checker should not attempt to fetch:
-// unparsable strings, non-HTTP(S) schemes (e.g. file://, gopher://), or URLs
-// without a host. Mirrors the URL rules enforced by api-gateway's
-// ServiceCreate.validate_url so both services agree on what is a valid target.
+// unparsable strings, non-HTTP(S) schemes (e.g. file://, gopher://), URLs
+// without a host, or URLs with embedded credentials. Mirrors the URL rules
+// enforced by api-gateway's ServiceCreate.validate_url so both services agree
+// on what is a valid target.
+//
+// Rejecting userinfo (`http://user:pass@host`) matches api-gateway's rule:
+// the monitored URL is propagated to structured logs and alert-service, so
+// accepting embedded credentials would risk leaking secrets through logs.
+// Health check endpoints are expected to be reachable without in-URL
+// credentials.
 func validateCheckURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -76,6 +83,9 @@ func validateCheckURL(rawURL string) error {
 	}
 	if parsed.Host == "" || parsed.Hostname() == "" {
 		return &checkURLError{msg: "url must include a host name"}
+	}
+	if parsed.User != nil {
+		return &checkURLError{msg: "url must not contain embedded credentials"}
 	}
 	return nil
 }

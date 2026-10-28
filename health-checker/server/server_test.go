@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -106,6 +107,11 @@ func TestCheckEndpointInvalidURL(t *testing.T) {
 		{"non http scheme gopher", "gopher://example.com"},
 		{"missing host", "http://"},
 		{"scheme only", "https://"},
+		// userinfo を含む URL は、ログや alert-service への伝播で秘密情報が
+		// 漏れる懸念があるため拒否する。api-gateway の ServiceCreate.validate_url
+		// と同じルール。
+		{"userinfo user only", "http://user@example.com/health"},
+		{"userinfo user and password", "https://user:pass@example.com/health"},
 	}
 
 	for _, tc := range cases {
@@ -132,6 +138,13 @@ func TestCheckEndpointInvalidURL(t *testing.T) {
 			}
 			if _, ok := resp["error"]; !ok {
 				t.Errorf("url=%q: expected 'error' key in response body, got %v", tc.url, resp)
+			}
+			// userinfo を拒否するケースでは、エラー本文に認証情報自体を
+			// 含めない (= ログに写り込ませない) ことも軽く確認する。
+			if strings.Contains(tc.name, "userinfo") {
+				if strings.Contains(resp["error"], "pass") || strings.Contains(resp["error"], "user@") {
+					t.Errorf("url=%q: error message should not echo credentials, got %q", tc.url, resp["error"])
+				}
 			}
 		})
 	}
