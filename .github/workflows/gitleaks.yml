@@ -1,0 +1,47 @@
+name: gitleaks
+
+# シークレット（API キー / トークン / パスワード 等）の漏洩を検知する
+# ワークフロー。PR / main への push / 週次スケジュールで実行する。
+#
+# gitleaks-action は公式 OSS（MIT ライセンス）。
+# https://github.com/gitleaks/gitleaks-action
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # 毎週月曜 18:00 UTC (= 火曜 03:00 JST)。業務時間外に走らせて
+    # Actions の実行枠競合を避ける。
+    - cron: "0 18 * * 1"
+
+# 他のワークフローと揃える: チェックアウト以外に GITHUB_TOKEN を使わないため
+# 書き込み権限は与えない。
+permissions:
+  contents: read
+
+# 同一ワークフロー・同一 ref で新しいジョブが起動したら進行中のジョブを
+# キャンセルする。schedule 実行は ref が固定なので、連続スケジュール時にも
+# 枠の無駄を抑えられる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: gitleaks scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # PR / push で履歴全体を検査するために full fetch。
+          # shallow clone だと過去コミットのシークレット検知が漏れる。
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
