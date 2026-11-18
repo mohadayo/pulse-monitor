@@ -1,6 +1,11 @@
 # Pulse Monitor
 
 [![CI](https://github.com/mohadayo/pulse-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/ci.yml)
+[![actionlint](https://github.com/mohadayo/pulse-monitor/actions/workflows/actionlint.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/actionlint.yml)
+[![CodeQL](https://github.com/mohadayo/pulse-monitor/actions/workflows/codeql.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/mohadayo/pulse-monitor/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/dependency-review.yml)
+[![gitleaks](https://github.com/mohadayo/pulse-monitor/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/gitleaks.yml)
+[![hadolint](https://github.com/mohadayo/pulse-monitor/actions/workflows/hadolint.yml/badge.svg)](https://github.com/mohadayo/pulse-monitor/actions/workflows/hadolint.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![Python](https://img.shields.io/badge/python-3.12+-3776ab.svg?logo=python&logoColor=white)](api-gateway/)
 [![Go](https://img.shields.io/badge/go-1.22+-00add8.svg?logo=go&logoColor=white)](health-checker/)
