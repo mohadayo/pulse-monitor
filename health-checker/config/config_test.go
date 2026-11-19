@@ -1,8 +1,30 @@
 package config
 
 import (
+	"io"
+	"os"
+	"strings"
 	"testing"
 )
+
+// captureStderr redirects os.Stderr for the duration of the test and
+// returns a function that restores it and yields the captured bytes.
+func captureStderr(t *testing.T) func() string {
+	t.Helper()
+	orig := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stderr = w
+	return func() string {
+		_ = w.Close()
+		os.Stderr = orig
+		b, _ := io.ReadAll(r)
+		_ = r.Close()
+		return string(b)
+	}
+}
 
 func TestLoadDefaults(t *testing.T) {
 	// Clear all env vars the loader consults so we exercise the defaults.
@@ -103,5 +125,57 @@ func TestLoadOverridesFromEnv(t *testing.T) {
 	}
 	if cfg.ShutdownTimeout != "6s" {
 		t.Errorf("ShutdownTimeout = %q", cfg.ShutdownTimeout)
+	}
+}
+
+// resolveLogLevel should match the Python (api-gateway) and TypeScript
+// (alert-service) configs: accept lower-case, trim whitespace, honor
+// "WARNING" as an alias for "WARN", and fall back to INFO on unknown
+// values. These used to silently resolve to INFO via main.go's switch.
+func TestResolveLogLevelNormalization(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"", "INFO"}, {"   ", "INFO"},
+		{"debug", "DEBUG"}, {"Info", "INFO"},
+		{"WARN", "WARN"}, {"WARNING", "WARN"}, {"warning", "WARN"},
+		{"  DEBUG  ", "DEBUG"}, {"ERROR", "ERROR"},
+	}
+	restore := captureStderr(t)
+	t.Cleanup(func() { restore() })
+	for _, tc := range cases {
+		if got := resolveLogLevel(tc.in); got != tc.want {
+			t.Errorf("resolveLogLevel(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestResolveLogLevelInvalidFallsBackAndWarns(t *testing.T) {
+	restore := captureStderr(t)
+	for _, in := range []string{"TRACE", "verbose", "notalevel"} {
+		if got := resolveLogLevel(in); got != "INFO" {
+			t.Errorf("resolveLogLevel(%q) = %q, want INFO fallback", in, got)
+		}
+	}
+	out := restore()
+	for _, want := range []string{"invalid LOG_LEVEL", "falling back to INFO"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("stderr missing %q, got: %q", want, out)
+		}
+	}
+}
+
+// Load() must accept lower-case and WARNING-style LOG_LEVEL overrides
+// and expose them in main.go's switch-expected form.
+func TestLoadNormalizesLogLevel(t *testing.T) {
+	cases := map[string]string{
+		"debug": "DEBUG", "Info": "INFO", "WARNING": "WARN", "error": "ERROR",
+	}
+	for in, want := range cases {
+		in, want := in, want
+		t.Run(in, func(t *testing.T) {
+			t.Setenv("LOG_LEVEL", in)
+			if got := Load().LogLevel; got != want {
+				t.Errorf("Load().LogLevel for LOG_LEVEL=%q = %q, want %q", in, got, want)
+			}
+		})
 	}
 }
